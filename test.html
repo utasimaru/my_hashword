@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <script>
+    // Supabaseの設定（プロジェクトのURLとAPIキーをダッシュボードから取得して入力）
+    const SUPABASE_URL = 'https://your-project-id.supabase.co';
+    const SUPABASE_KEY = 'your-anon-key';
+
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // データの取得例
+    async function fetchData() {
+      const { data, error } = await supabase
+        .from('your_table_name')
+        .select('*');
+      
+      if (error) console.error('エラー:', error);
+      else console.log('データ:', data);
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>
