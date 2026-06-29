@@ -130,11 +130,13 @@
                     id="user-password"
                     placeholder="Passwordを入力"
                 />
+
                 <input
                     type="password"
                     id="hashword"
                     placeholder="生成されたパスワード"
                 />
+                <button type="button" id="toggleBtn">表示/非表示</button>
             </div>
 
             <div class="section-title">サービスデータ追加欄</div>
@@ -309,8 +311,7 @@
                             service.prefix,
                             service.pass_length,
                         );
-
-                        document.getElementById("hashword").value = hashword;
+                        hashwordField.value = hashword;
                         console.log(`個別処理するよ:`, hashword);
                         try {
                             // クリップボードに書き込み
@@ -384,6 +385,8 @@
             const btnDownload = document.getElementById("btn-download");
             const btnUpload = document.getElementById("btn-upload");
             const btnAdd = document.getElementById("btn-add");
+            const hashwordField = document.getElementById("hashword");
+            const toggleButton = document.getElementById("toggleBtn");
 
             // 3. 追加ボタンの処理
             btnAdd.addEventListener("click", () => {
@@ -472,6 +475,14 @@
                 else console.log("保存または更新が成功しました");
             });
 
+            toggleButton.addEventListener("click", function () {
+                // type属性を確認して切り替える
+                const type =
+                    hashwordField.getAttribute("type") === "password"
+                        ? "text"
+                        : "password";
+                hashwordField.setAttribute("type", type);
+            });
             // 初期実行：ページ読み込み時にJSONデータを表示
 
             fetchData("test_user_01");
