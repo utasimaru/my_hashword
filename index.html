@@ -94,7 +94,9 @@
             <div class="app-description">
                 <p>1.passwordを入力</p>
                 <p>2.サービス欄を埋める</p>
-                <p>3.「生成してコピー」ボタンを押すと強力なパスワードをコピーします。</p>
+                <p>
+                    3.「生成してコピー」ボタンを押すと強力なパスワードをコピーします。
+                </p>
                 <p>
                     弱いパスワードに、サービス名、更新回数を連結し、SHA-256を適用して強いパスワードにします。パスワードに必要な条件を満たすため、最初の数文字を先頭語に変更します。
                 </p>
@@ -303,14 +305,7 @@
                             service.pass_length,
                         );
                         console.log(`個別処理するよ:`, hashword);
-                        try {
-                            // クリップボードに書き込み
-                            await navigator.clipboard.writeText(hashword);
-                            status.textContent = "コピーしました！";
-                        } catch (err) {
-                            status.textContent = "コピーに失敗しました";
-                            console.error("エラー:", err);
-                        }
+                        await copyText(hashword);
                     });
 
                     row.appendChild(inputName);
@@ -320,6 +315,35 @@
                     row.appendChild(btnAction);
                     container.appendChild(row);
                 });
+            }
+            async function copyText(text) {
+                // 1. Clipboard APIを試す
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        console.log("コピー成功");
+                        return; // 成功
+                    } catch (err) {
+                        console.log("コピー失敗 フォールバック");
+                        console.error("Clipboard API failed", err);
+                    }
+                }
+
+                // 2. 失敗した場合、昔ながらの手法（フォールバック）
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                // 画面外に隠す
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand("copy");
+                } catch (err) {
+                    console.error("Fallback copy failed", err);
+                    console.log("コピー フォールバック失敗");
+                }
+                document.body.removeChild(textArea);
             }
             /**
              * パスワード、サービス名、更新回数からBase62文字列を生成します。
