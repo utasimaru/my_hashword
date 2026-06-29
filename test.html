@@ -1,27 +1,472 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-  <script>
-    // Supabaseの設定（プロジェクトのURLとAPIキーをダッシュボードから取得して入力）
-    const SUPABASE_URL = 'https://your-project-id.supabase.co';
-    const SUPABASE_KEY = 'your-anon-key';
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>サービスデータ管理</title>
 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        <style>
+            body {
+                font-family: sans-serif;
+                padding: 20px;
+                background-color: #f9f9f9;
+            }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
 
-    // データの取得例
-    async function fetchData() {
-      const { data, error } = await supabase
-        .from('your_table_name')
-        .select('*');
-      
-      if (error) console.error('エラー:', error);
-      else console.log('データ:', data);
-    }
+            /* 行全体のレイアウト設定 */
+            .row {
+                display: flex;
+                gap: 8px; /* 少しだけ隙間を詰める */
+                align-items: center;
+                margin-bottom: 15px;
+            }
 
-    fetchData();
-  </script>
-</body>
+            /* セクションのタイトルスタイル */
+            .section-title {
+                font-weight: bold;
+                margin-top: 25px;
+                margin-bottom: 10px;
+                padding-bottom: 5px;
+                border-bottom: 2px solid #ddd;
+            }
+            /* ボタンの基本スタイル */
+            /* ボタンが潰れないように設定 */
+            button {
+                white-space: nowrap; /* テキストが改行されないようにする */
+                padding: 8px 12px;
+                border: none;
+                border-radius: 4px;
+                background-color: #007bff;
+                color: white;
+                cursor: pointer;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+            /* 各入力欄の幅を調整 */
+            /* サービス名(2), バージョン(1), 先頭語(1), 長さ(1), ボタン(auto) */
+            .input-service {
+                flex: 2;
+                min-width: 150px;
+            }
+            .input-version {
+                flex: 1;
+                min-width: 60px;
+            }
+            .input-prefix {
+                flex: 1;
+                min-width: 80px;
+            }
+            .input-length {
+                flex: 1;
+                min-width: 60px;
+            }
+            .app-description {
+                margin-bottom: 25px;
+                padding: 15px;
+                background-color: #eef6ff; /* 薄い青背景で強調 */
+                border-left: 5px solid #007bff; /* 左側にラインを引いてアクセント */
+                border-radius: 4px;
+                color: #333;
+            }
+
+            .app-description h2 {
+                margin: 0 0 10px 0;
+                font-size: 1.2em;
+            }
+
+            .app-description p {
+                margin: 5px 0;
+                font-size: 0.9em;
+                line-height: 1.5;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="app-description">
+                <p>1.passwordを入力</p>
+                <p>2.サービス欄を埋める</p>
+                <p>3.「生成してコピー」ボタンを押す</p>
+                <p>
+                    弱いパスワードに、サービス名、更新回数を連結し、SHA-256を適用して強いパスワードにします。パスワードに必要な条件を満たすため、最初の数文字を先頭語に変更します。
+                </p>
+
+                <p>
+                    ニックネームはなんでもいいですが、他人に同じ名前が使用されると、データを読み取られますし、書き換えられます。。
+                </p>
+            </div>
+            <div class="app-description">
+                <p>注意：重要なパスワードにこれを使うな</p>
+                <p>
+                    注意：アップロードしたデータは、セキュリティ皆無のDBに保存されます。
+                </p>
+                <p>
+                    注意：アップロードするデータは、変換前、変換後のパスワードを含まない、漏洩しても問題ない(?)ものだけです。
+                </p>
+            </div>
+            <div class="row">
+                <input
+                    type="password"
+                    id="user-id"
+                    placeholder="ニックネームを入力"
+                />
+                <button id="btn-download">download</button>
+                <button id="btn-upload">upload</button>
+            </div>
+
+            <div class="row">
+                <input
+                    type="password"
+                    id="user-password"
+                    placeholder="Passwordを入力"
+                />
+            </div>
+
+            <div class="section-title">サービスデータ追加欄</div>
+            <div class="row">
+                <input
+                    type="text"
+                    id="add-name"
+                    class="input-service"
+                    placeholder="サービス名"
+                />
+                <input
+                    type="number"
+                    id="add-version"
+                    class="input-version"
+                    placeholder="バージョン数"
+                />
+                <input
+                    type="text"
+                    id="add-prefix"
+                    class="input-prefix"
+                    placeholder="先頭語"
+                />
+                <input
+                    type="text"
+                    id="add-length"
+                    class="input-length"
+                    placeholder="パス長さ"
+                />
+                <button id="btn-add">追加ボタン</button>
+            </div>
+
+            <div class="section-title">サービスデータ表示欄</div>
+            <div id="service-data-container"></div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <script>
+            let serviceList = JSON.parse(`[
+              {"name": "グーグルとかのサービス名", "version": 2, "prefix": "hW62","pass_length":32},
+              {"name": "ヤフー", "version": 1, "prefix": "hW62@","pass_length":32},
+              {"name": "pc", "version": 5, "prefix": "hW62","pass_length":32}
+            ]`);
+            const db = supabase.createClient(
+                "https://rtkjqvbulfktkskdtrsa.supabase.co",
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0a2pxdmJ1bGZrdGtza2R0cnNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MjI0ODIsImV4cCI6MjA5ODA5ODQ4Mn0.llbiSagQYgG6wvUPdSWomyUH5HBmR59zgcMrpS2Gvqg",
+            );
+            async function fetchData(owner_name) {
+                const { data, error } = await db.rpc("get_unsafe_text", {
+                    target_owner: owner_name,
+                });
+                console.log(data[0].data);
+            }
+
+            function validateServiceData(data) {
+                // 1. そもそも配列かどうかをチェック
+                if (!Array.isArray(data)) {
+                    console.error(
+                        "バリデーションエラー: データが配列ではありません。",
+                    );
+                    return false;
+                }
+
+                // 2. 配列の各要素（オブジェクト）の中身をチェック
+                for (let i = 0; i < data.length; i++) {
+                    const item = data[i];
+
+                    // 要素がオブジェクトか、かつ null でないか
+                    if (typeof item !== "object" || item === null) {
+                        console.error(
+                            `バリデーションエラー: [${i}]番目の要素がオブジェクトではありません。`,
+                        );
+                        return false;
+                    }
+
+                    // 必要なプロパティが存在し、型が正しいかチェック
+                    //（versionは必須、かつ数値型か）
+                    if (
+                        typeof item.name !== "string" ||
+                        item.name.trim() === ""
+                    ) {
+                        console.error(
+                            `バリデーションエラー: [${i}]番目の要素の 'name' が不正です。文字列が必要です。`,
+                        );
+                        return false;
+                    }
+
+                    if (
+                        typeof item.version !== "number" ||
+                        isNaN(item.version)
+                    ) {
+                        console.error(
+                            `バリデーションエラー: [${i}]番目の要素の 'version' が不正です。数値が必要です。`,
+                        );
+                        return false;
+                    }
+
+                    if (typeof item.prefix !== "string") {
+                        console.error(
+                            `バリデーションエラー: [${i}]番目の要素の 'prefix' が不正です。文字列が必要です。`,
+                        );
+                        return false;
+                    }
+                }
+
+                // すべてのチェックを通過
+                return true;
+            }
+            // サービスデータ表示欄を動的に生成する関数
+            function renderServiceData() {
+                container.innerHTML = "";
+
+                serviceList.forEach((service, index) => {
+                    const row = document.createElement("div");
+                    row.className = "row";
+
+                    // サービス名入力欄
+                    const inputName = document.createElement("input");
+                    inputName.type = "text";
+                    inputName.className = "input-service";
+                    inputName.value = service.name;
+                    // ★入力が変更されたら、配列のデータを更新する
+                    inputName.addEventListener("input", () => {
+                        serviceList[index].name = inputName.value;
+                    });
+
+                    // バージョン数入力欄
+                    const inputVersion = document.createElement("input");
+                    inputVersion.type = "number";
+                    inputVersion.className = "input-version";
+                    inputVersion.value = service.version;
+                    // ★入力が変更されたら、配列のデータを更新する
+                    inputVersion.addEventListener("input", () => {
+                        serviceList[index].version =
+                            parseInt(inputVersion.value) || 0;
+                    });
+
+                    // 先頭語入力欄
+                    const inputPrefix = document.createElement("input");
+                    inputPrefix.type = "text";
+                    inputPrefix.className = "input-prefix";
+                    inputPrefix.value = service.prefix;
+                    // ★入力が変更されたら、配列のデータを更新する
+                    inputPrefix.addEventListener("input", () => {
+                        serviceList[index].prefix = inputPrefix.value;
+                    });
+
+                    const inputLength = document.createElement("input");
+                    inputLength.type = "text";
+                    inputLength.className = "input-length";
+                    inputLength.value = service.pass_length;
+                    // ★入力が変更されたら、配列のデータを更新する
+                    inputLength.addEventListener("input", () => {
+                        serviceList[index].pass_length = inputLength.value;
+                    });
+
+                    // 各行のボタン（個別処理用）
+                    const btnAction = document.createElement("button");
+                    btnAction.innerText = `生成してCopy`;
+                    btnAction.addEventListener("click", async () => {
+                        const password =
+                            document.getElementById("user-password").value;
+                        if (password == "") {
+                            alert("passwordを入力してください");
+                            return;
+                        }
+                        const service = serviceList[index];
+                        const hashword = await GENERATE_HASHWORD62(
+                            password,
+                            service.name,
+                            service.version,
+                            service.prefix,
+                            service.pass_length,
+                        );
+                        console.log(`個別処理するよ:`, hashword);
+                        try {
+                            // クリップボードに書き込み
+                            await navigator.clipboard.writeText(hashword);
+                            status.textContent = "コピーしました！";
+                        } catch (err) {
+                            status.textContent = "コピーに失敗しました";
+                            console.error("エラー:", err);
+                        }
+                    });
+
+                    row.appendChild(inputName);
+                    row.appendChild(inputVersion);
+                    row.appendChild(inputPrefix);
+                    row.appendChild(inputLength);
+                    row.appendChild(btnAction);
+                    container.appendChild(row);
+                });
+            }
+            /**
+             * パスワード、サービス名、更新回数からBase62文字列を生成します。
+             * @customfunction
+             */
+            async function GENERATE_HASHWORD62(
+                password,
+                service,
+                version_count,
+                prefix,
+                pass_length,
+            ) {
+                const seed = password + service + version_count;
+                const encoder = new TextEncoder();
+                const data = encoder.encode(seed);
+
+                const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+                const bytes = new Uint8Array(hashBuffer);
+
+                // 符号付きバイト配列を符号なし（0-255）の数値配列に変換
+                const unsignedBytes = bytes.map((b) => b + 128);
+
+                // 1. 基数変換を実行
+                let hash = bytesToBase62s(unsignedBytes, pass_length);
+
+                // 2. hashの先頭をprefixで置き換え
+                // hashの「prefixの長さ以降」の部分と「prefix」を結合します
+                // hashが0123456で、prefixがaaaの場合:
+                // hash.substring(3) は 3456 となるため、aaa + 3456 = aaa3456 となります
+                return prefix + hash.substring(prefix.length);
+            }
+
+            /**
+             * byte配列を62で割った余りでBase62にします
+             * @param {Array<number>} bytes
+             * @returns {string}
+             */
+            function bytesToBase62s(bytes, length) {
+                const chars =
+                    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+                let result = "";
+
+                // 割り算を繰り返して基数変換
+                for (let i = 0; i < length; i++) {
+                    let _byte = bytes[i % bytes.length];
+                    result += chars[_byte % 62];
+                }
+                return result;
+            }
+
+            // HTML要素の取得
+            const container = document.getElementById("service-data-container");
+            const btnDownload = document.getElementById("btn-download");
+            const btnUpload = document.getElementById("btn-upload");
+            const btnAdd = document.getElementById("btn-add");
+
+            // 3. 追加ボタンの処理
+            btnAdd.addEventListener("click", () => {
+                const nameInput = document.getElementById("add-name");
+                const versionInput = document.getElementById("add-version");
+                const prefixInput = document.getElementById("add-prefix");
+                const lengthInput = document.getElementById("add-length");
+
+                // 空チェック
+                if (!nameInput.value) {
+                    alert("サービス名を入力してください。");
+                    return;
+                }
+
+                // 新しいデータを配列に追加
+                const newService = {
+                    name: nameInput.value,
+                    version: parseInt(versionInput.value) || 0,
+                    prefix: prefixInput.value,
+                    pass_length: parseInt(lengthInput.value) || 32,
+                };
+                serviceList.push(newService);
+
+                // 再描画して画面に反映
+                renderServiceData();
+
+                // 追加欄の入力をクリア
+                console.log("新しいサービスデータを追加しました:", newService);
+                nameInput.value = "";
+                versionInput.value = "0";
+                prefixInput.value = "hW62";
+                lengthInput.value = "32";
+            });
+
+            // 4. Download ボタンの処理
+            btnDownload.addEventListener("click", async () => {
+                const id = document.getElementById("user-id").value;
+
+                const { data, error } = await db.rpc("get_unsafe_text", {
+                    target_owner: id,
+                });
+
+                try {
+                    // まずJSON文字列として正しいかパースする
+                    const parsedData = JSON.parse(data[0].data);
+
+                    // パースしたデータ形式が正しいかチェック
+                    if (validateServiceData(parsedData)) {
+                        // 形式が正しければ、グローバルな配列を上書きして画面を再描画
+                        serviceList = parsedData;
+                        renderServiceData();
+                        console.log(
+                            "データのダウンロードと更新に成功しました。",
+                        );
+                    } else {
+                        // 形式が違っていた場合
+                        alert(
+                            "ダウンロードしたデータの形式が不正です。コンソールを確認してください。",
+                        );
+                    }
+                } catch (error) {
+                    // JSON文字列自体が壊れていてパースできなかった場合（カンマが抜けているなど）
+                    console.error("JSONのパースに失敗しました:", error.message);
+                    alert("不完全なJSONデータを受信しました。");
+                }
+
+                console.log(`Downloadボタンがクリックされました。(ID: ${id})`);
+            });
+
+            // 5. Upload ボタンの処理
+            btnUpload.addEventListener("click", async () => {
+                const id = document.getElementById("user-id").value;
+
+                // すべてのサービスデータが入った配列をJSON文字列にする
+                const allServiceDataJson = JSON.stringify(serviceList);
+
+                console.log(`--- Upload処理形式の確認 ---`);
+                console.log(`送信するJSONデータ:\n`, allServiceDataJson);
+
+                const { error } = await db.rpc("upsert_unsafe_text", {
+                    target_owner: id,
+                    new_data: allServiceDataJson,
+                });
+
+                if (error) console.error("エラーが発生しました:", error);
+                else console.log("保存または更新が成功しました");
+            });
+
+            // 初期実行：ページ読み込み時にJSONデータを表示
+
+            fetchData("test_user_01");
+            renderServiceData();
+        </script>
+    </body>
 </html>
