@@ -350,7 +350,7 @@
                 const bytes = new Uint8Array(hashBuffer);
 
                 // 符号付きバイト配列を符号なし（0-255）の数値配列に変換
-                const unsignedBytes = bytes.map((b) => b + 128);
+                const unsignedBytes = bytes.map((b) => b + 127);
 
                 // 1. 基数変換を実行
                 let hash = bytesToBase62s(unsignedBytes, pass_length);
