@@ -130,6 +130,11 @@
                     id="user-password"
                     placeholder="Passwordを入力"
                 />
+                <input
+                    type="password"
+                    id="hashword"
+                    placeholder="生成されたパスワード"
+                />
             </div>
 
             <div class="section-title">サービスデータ追加欄</div>
@@ -304,6 +309,8 @@
                             service.prefix,
                             service.pass_length,
                         );
+
+                        document.getElementById("hashword").value = hashword;
                         console.log(`個別処理するよ:`, hashword);
                         try {
                             // クリップボードに書き込み
